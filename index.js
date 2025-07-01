@@ -133,35 +133,46 @@ const onFileUploadSuccess = (res) => {
 };
 
 emailForm.addEventListener("submit", (e) => {
-  e.preventDefault(); // stop submission
+  e.preventDefault();
 
-  // disable the button
-  emailForm[2].setAttribute("disabled", "true");
-  emailForm[2].innerText = "Sending";
+  emailForm.querySelector("button").setAttribute("disabled", "true");
+  emailForm.querySelector("button").innerText = "Sending";
 
   const url = fileURL.value;
+  const receiverEmail = emailForm.elements["to-email"].value;
+  // optional sender email input (if removed, use a default or empty string)
+  const senderEmail = emailForm.elements["from-email"] ? emailForm.elements["from-email"].value : "";
 
   const formData = {
-    uuid: url.split("/").splice(-1, 1)[0],
-    receiver: emailForm.elements["to-email"].value,
-    sender: emailForm.elements["from-email"].value,
+    uuid: url.split("/").pop(),
+    receiver: receiverEmail,
+    sender: senderEmail || process.env.MAIL_USER, // fallback to your email if empty
   };
-  console.log(formData);
+
   fetch(emailURL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(formData),
   })
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
         showToast("Email Sent");
-        sharingContainer.style.display = "none"; // hide the box
+        sharingContainer.style.display = "none";
+      } else {
+        showToast(data.message || "Failed to send email");
       }
+    })
+    .catch((err) => {
+      showToast("Network error sending email");
+      console.error(err);
+    })
+    .finally(() => {
+      emailForm.querySelector("button").removeAttribute("disabled");
+      emailForm.querySelector("button").innerText = "Send";
     });
 });
+
 
 let toastTimer;
 // the toast function
